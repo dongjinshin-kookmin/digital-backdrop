@@ -174,24 +174,6 @@
   .photo-inst .pname .en{display:block;color:rgba(255,255,255,.76);font-size:1.05vw;margin-top:.6vh;}
   .photo-sep{color:var(--gold);font-weight:300;font-size:3vw;line-height:1;align-self:center;opacity:.9;}
 
-  /* hover-reveal page navigator (display mode) */
-  #pageNav{
-    position:fixed;left:50%;bottom:22px;z-index:42;
-    transform:translateX(-50%) translateY(14px);
-    display:flex;gap:5px;padding:5px;border-radius:12px;
-    background:rgba(12,20,34,.66);border:1px solid rgba(255,255,255,.14);
-    backdrop-filter:blur(6px);
-    opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;
-  }
-  #pageNav.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
-  #pageNav button{
-    background:none;border:none;color:#cfd8e6;font-family:inherit;font-size:12px;
-    padding:6px 15px;border-radius:8px;cursor:pointer;letter-spacing:.02em;transition:.15s;
-  }
-  #pageNav button.active{background:var(--panel-accent2);color:#fff;}
-  #pageNav button:not(.active):hover{color:#fff;background:rgba(255,255,255,.08);}
-  body.admin #pageNav{display:none;}
-
   /* ==================== ADMIN ENTRY (gear) ==================== */
   #gearZone{
     position:fixed;top:0;right:0;width:130px;height:130px;z-index:40;
@@ -384,12 +366,6 @@
     <div id="photoLayer"></div>
   </div>
 
-  <!-- ===== Page navigator (display mode, hover-reveal) ===== -->
-  <div id="pageNav" aria-label="페이지 전환">
-    <button data-page="main" title="메인 페이지 (1)">1 · 메인</button>
-    <button data-page="photo" title="포토 페이지 (2)">2 · 포토</button>
-  </div>
-
   <!-- ===== Admin entry ===== -->
   <div id="gearZone">
     <button id="gearBtn" title="관리자 모드 (E)" aria-label="관리자 모드 열기">
@@ -486,11 +462,8 @@
       <div class="section" data-sec="photo">
         <div class="sec-head"><h2>포토 페이지</h2><span class="chev">&#9660;</span></div>
         <div class="sec-body">
-          <div class="hint" style="padding-top:0">사진 촬영용 두번째 페이지입니다. 메인 페이지의 배경·기관·타이틀을 그대로 상단에 모아 재배치하므로, 사람들이 하단에 서도 콘텐츠가 가려지지 않습니다. 키보드 <span class="kbd">1</span>/<span class="kbd">2</span> 또는 <span class="kbd">#photo</span> 링크로도 전환됩니다.</div>
-          <div class="grid2" style="margin:8px 0 12px">
-            <button class="btn" id="goMain">메인 페이지</button>
-            <button class="btn" id="goPhoto">포토 페이지</button>
-          </div>
+          <div class="hint" style="padding-top:0">사진 촬영용 두번째 페이지입니다. 메인 페이지의 배경·기관·타이틀을 그대로 상단에 모아 재배치하므로, 사람들이 하단에 서도 콘텐츠가 가려지지 않습니다. 표시 화면에서는 키보드 <span class="kbd">P</span>로 전환(토글)하며, <span class="kbd">1</span>/<span class="kbd">2</span> 또는 <span class="kbd">#photo</span> 링크로도 이동할 수 있습니다.</div>
+          <div class="toggle-row" style="margin:8px 0 12px"><span>포토 페이지 표시</span><label class="switch"><input type="checkbox" id="pageToggle"><span class="slider"></span></label></div>
           <div class="field"><label>콘텐츠 세로 위치 <span class="valtag" id="photoYVal"></span></label><input type="range" id="photoY" min="-25" max="40" step="0.5"></div>
           <div class="field"><label>콘텐츠 크기 배율 <span class="valtag" id="photoScaleVal"></span></label><input type="range" id="photoScale" min="0.5" max="1.5" step="0.02"></div>
         </div>
@@ -1267,20 +1240,10 @@
     }catch(e){}
     syncPageUI();
   }
+  function togglePage(){ setPage(currentPage==="photo" ? "main" : "photo"); }
   function syncPageUI(){
-    var navBtns = document.querySelectorAll("#pageNav button");
-    for(var i=0;i<navBtns.length;i++)
-      navBtns[i].classList.toggle("active", navBtns[i].getAttribute("data-page")===currentPage);
-    var gm=$("#goMain"), gp=$("#goPhoto");
-    if(gm) gm.classList.toggle("primary", currentPage==="main");
-    if(gp) gp.classList.toggle("primary", currentPage==="photo");
-  }
-  var navTimer;
-  function revealNav(){
-    var nav = $("#pageNav"); if(!nav) return;
-    nav.classList.add("show");
-    clearTimeout(navTimer);
-    navTimer = setTimeout(function(){ nav.classList.remove("show"); }, 2600);
+    var pt=$("#pageToggle");
+    if(pt) pt.checked = (currentPage==="photo");
   }
 
   /* ================= Helpers ================= */
@@ -1438,8 +1401,7 @@
     });
 
     // photo page controls
-    $("#goMain").addEventListener("click", function(){ setPage("main"); });
-    $("#goPhoto").addEventListener("click", function(){ setPage("photo"); });
+    $("#pageToggle").addEventListener("change", function(){ setPage(this.checked ? "photo" : "main"); });
     $("#photoY").addEventListener("input", function(){
       state.photo.offsetY = parseFloat(this.value);
       $("#photoYVal").textContent = round1(state.photo.offsetY)+"vh";
@@ -1488,16 +1450,6 @@
     $("#gearBtn").addEventListener("click", function(){ setAdmin(true); });
     $("#closeBtn").addEventListener("click", function(){ setAdmin(false); });
 
-    // page navigator (hover-reveal in display mode)
-    var pageNav = $("#pageNav");
-    pageNav.querySelectorAll("button").forEach(function(b){
-      b.addEventListener("click", function(e){ e.stopPropagation(); setPage(b.getAttribute("data-page")); revealNav(); });
-    });
-    document.addEventListener("mousemove", function(){
-      if(document.body.classList.contains("admin")) return;
-      revealNav();
-    });
-
     // deselect when clicking empty canvas in admin mode
     stage.addEventListener("pointerdown", function(e){
       if(!document.body.classList.contains("admin")) return;
@@ -1519,6 +1471,7 @@
     if(e.key==="e"||e.key==="E"){ e.preventDefault(); toggleAdmin(); }
     else if(e.key==="1"){ e.preventDefault(); setPage("main"); }
     else if(e.key==="2"){ e.preventDefault(); setPage("photo"); }
+    else if(e.key==="p"||e.key==="P"){ e.preventDefault(); togglePage(); }
     else if((e.key==="Delete"||e.key==="Backspace") && selectedId && document.body.classList.contains("admin")){
       e.preventDefault(); deleteElement(selectedId);
     }
