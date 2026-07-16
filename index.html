@@ -534,7 +534,7 @@
 "use strict";
 (function(){
   var STORAGE_KEY = "digital-backdrop-app-v1";
-  var SCHEMA = 3;
+  var SCHEMA = 4;
 
   /* ---------- Built-in logo assets (real KMU/NKUST marks from the original backdrop) ----------
      These live as code constants only. The saved state / exported JSON references them by KEY
@@ -566,7 +566,7 @@
     return "";
   }
 
-  /* ---------- Default template (generalized NKUST MOU backdrop) ---------- */
+  /* ---------- Default template (Kookmin University standalone, generic) ---------- */
   function defaultState(){
     var uid = 0; function id(){ return "el"+(Date.now().toString(36))+(uid++); }
     return {
@@ -586,7 +586,7 @@
       effects: { sheen:true, grid:true, beams:true, particles:true, frame:true },
       institutions: {
         enabled: true,
-        count: 2,
+        count: 1,
         separator: "×",
         y: 55,
         scale: 1.0,
@@ -600,16 +600,16 @@
       },
       photo: { offsetY: -1, scale: 0.9 },
       elements: [
-        { id:id(), type:"text", content:"국민대학교 · NKUST 국제교류 협정 체결식",
-          x:50, y:11, fontSize:1.15, fontWeight:600, color:"#e6c67d", letterSpacing:0.16, align:"center", z:2 },
+        { id:id(), type:"text", content:"국민대학교 협정 체결식",
+          x:50, y:10, fontSize:1.15, fontWeight:600, color:"#e6c67d", letterSpacing:0.16, align:"center", z:2 },
         { id:id(), type:"text", content:"MOU SIGNING CEREMONY",
-          x:50, y:23, fontSize:4.2, fontWeight:800, color:"#ffffff", letterSpacing:0.03, align:"center", z:3 },
-        { id:id(), type:"text", content:"2026 . 07 . 10 .",
-          x:50, y:82, fontSize:1.9, fontWeight:300, color:"#ffffff", letterSpacing:0.12, align:"center", z:4 },
-        { id:id(), type:"text", content:"협정 체결식 · 국민대학교 본부관 허용수홀",
-          x:50, y:88, fontSize:1.0, fontWeight:500, color:"rgba(255,255,255,.6)", letterSpacing:0.14, align:"center", z:5 },
+          x:50, y:25, fontSize:5.6, fontWeight:800, color:"#ffffff", letterSpacing:0.03, align:"center", z:3 },
+        { id:id(), type:"text", content:"2026 . 00 . 00 .",
+          x:50, y:76, fontSize:1.9, fontWeight:300, color:"#ffffff", letterSpacing:0.12, align:"center", z:4 },
+        { id:id(), type:"text", content:"협정 체결식 · 국민대학교 ○○홀",
+          x:50, y:82, fontSize:1.0, fontWeight:500, color:"rgba(255,255,255,.6)", letterSpacing:0.14, align:"center", z:5 },
         { id:id(), type:"image", content:"국민대 워드마크", assetKey:"kmu-wordmark", src:null,
-          x:50, y:95, width:15, z:1 }
+          x:50, y:87, width:15, z:1 }
       ]
     };
   }
@@ -664,10 +664,34 @@
     return false;
   }
 
+  // Detect a saved state that is still the OLD (pre-schema-4) default template,
+  // i.e. the NKUST co-branded MOU layout the user never edited. When it is
+  // untouched we refresh it to the new Kookmin-standalone default; a user who
+  // has customized any of these lines keeps their edits.
+  function isOldDefaultPristine(s){
+    if(!Array.isArray(s.elements)) return false;
+    function hasText(t){
+      return s.elements.some(function(el){
+        return el && el.type==="text" && el.content===t;
+      });
+    }
+    var oldEyebrow  = "국민대학교 · NKUST 국제교류 협정 체결식";
+    var oldDate     = "2026 . 07 . 10 .";
+    var oldLocation = "협정 체결식 · 국민대학교 본부관 허용수홀";
+    var instCount = s.institutions && s.institutions.count;
+    return hasText(oldEyebrow) && hasText(oldDate) && hasText(oldLocation) && instCount===2;
+  }
+
   // Bring older saved states forward safely (add missing fields with defaults).
   function migrate(s){
     var def = defaultState();
     var prev = s.schema || 1;
+    // schema<4: if the state is still the untouched old NKUST default, adopt the
+    // new Kookmin-standalone default template wholesale.
+    if(prev < 4 && isOldDefaultPristine(s)){
+      s.elements = def.elements;
+      s.institutions = def.institutions;
+    }
     if(!s.institutions){
       s.institutions = def.institutions;               // schema<2: no institution block
     }else{
